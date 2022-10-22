@@ -4,208 +4,296 @@ namespace Лаб
 {
     public class Lab
     {
-        private class GameAccount
+        public class GameAccount
         {
-            private string _userName;
-            private int _curentRating;
-            private int _gamesCount;
-            private List<HistoryNote> history = new();
+            protected List<Game> _history = new();
 
-            private const int losestore = 5;
-            private const int winstore = 10;
+            protected string _userName;
+            protected int _curentRating;
+            protected int _gamesCount;
+            protected int _userID;
+            protected bool _basicVip_update = false;
+            
+            public bool getVipUpdate() { return _basicVip_update;}
 
-            public string GetUserName()
+            private static int userIDcounter=0;
+            public string? getName() { return _userName;}
+
+            public int getRating() { return _curentRating;}
+            
+            public GameAccount(string _userName)
             {
-                return _userName;
-            }
-
-            public void WinGame()
-            {
-                _gamesCount++;
-                _curentRating += winstore;
-            }
-
-            public void LoseGame()
-            {
-                _gamesCount++;
-                if (_curentRating > 6)
-                    _curentRating -= losestore;
-            }
-
-            public void Stats()
-            {
-                Console.WriteLine("Game Stats of Player: " + _userName + "\n\tPlayer Rating: " + _curentRating +
-                                  "\n\tGames Count: " + _gamesCount + "\n");
-            }
-
-            public void ShowHistory()
-            {
-                Console.WriteLine($"Personally Game History of {_userName}:");
-                foreach (var note in history)
-                    note.ShowNote();
-            }
-
-            public GameAccount(string userName)
-            {
-                _userName = userName;
+                this._userName = _userName;
                 _curentRating = 1000;
                 _gamesCount = 0;
+                _userID=userIDcounter++;
             }
 
-            public void NewHistoryNote(HistoryNote note)
+            public GameAccount(GameAccount NewAccount)
             {
-                history.Add(new HistoryNote(ref note));
+                this._userName = NewAccount._userName;
+                this._curentRating = NewAccount._curentRating;
+                this._gamesCount = NewAccount._gamesCount;
+                this._userID = NewAccount._userID;
+                this._history = NewAccount._history;
             }
+            
+            public virtual void WinGame(Game Mod)
+            {}
+
+            public virtual void LoseGame(Game Mod)
+            {}
+
+            public virtual void Stats()
+            {
+                Console.WriteLine($"Account ID : {_userID}\n\tPlayer Name: {_userName}\n\tGame Count : {_gamesCount}\n\tCurrent Rating : {_curentRating}");
+            }
+
+            public void History()
+            {
+                foreach (var note in _history)
+                    note.GameStats();
+            }
+
+            public void NewHistoryNote(Game Note)
+            {
+                _history.Add(new Game(Note));
+            }
+
+            public void NewCounter()
+            {_gamesCount++;}
         }
 
-        private class HistoryNote
+        public class GameAccountModifications : GameAccount
         {
-            private static int _currnetGameId = 0;
-            private int _gameId;
-            private GameAccount _playerOneName;
-            private string? _playerOneChoose;
-            private GameAccount _playerTwoName;
-            private string? _playerTwoChoose;
-            private int _gameResult; //1r2 win 0-draw
+            protected const int losestore = 5;
+            protected const int winstore = 10;
+            
+            protected int _loseGameModificator;
+            protected int _winGameModificator;
+            
+            protected int _winStreakCount = 0;
+            protected int _winStreakBonus;
 
-            public HistoryNote(GameAccount playerOneName, GameAccount playerTwoName, int gameResult,
-                string playerOneChoose, string playerTwoChoose)
-            {
-                _playerOneName = playerOneName;
-                _playerTwoName = playerTwoName;
-                _gameResult = gameResult;
-                _gameId = _currnetGameId++;
-                _playerOneChoose = playerOneChoose;
-                _playerTwoChoose = playerTwoChoose;
-            }
-
-            public HistoryNote(ref HistoryNote CopyNote)
-            {
-                this._playerOneName = CopyNote._playerOneName;
-                this._playerTwoName = CopyNote._playerTwoName;
-                this._gameResult = CopyNote._gameResult;
-                this._gameId = CopyNote._gameId;
-                this._playerOneChoose = CopyNote._playerOneChoose;
-                this._playerTwoChoose = CopyNote._playerTwoChoose;
-            }
-
-            public void ShowNote()
-            {
-                Console.WriteLine("\tGame ID: " + _gameId + "\n\tPlayer One: " + _playerOneName.GetUserName() +
-                                  "\t\tChoose: " + _playerOneChoose + "\n\tPlayer Two: " +
-                                  _playerTwoName.GetUserName() +
-                                  "\t\tChoose: " + _playerTwoChoose);
-                Console.WriteLine(_gameResult == 0
-                    ? "\tResult of game: DRAW"
-                    : ("\tWinner of the game is " +
-                       (_gameResult == 1 ? _playerOneName.GetUserName() : _playerTwoName.GetUserName())));
-                Console.WriteLine("--------------------------------------");
-            }
+            public GameAccountModifications(string _userName) : base(_userName)
+            {}
+            public GameAccountModifications(GameAccount NewAccount) : base(NewAccount)
+            {}
         }
 
-
-        private class Game
+        public class BasicGameAccount : GameAccountModifications
         {
-            private List<GameAccount> _accounts = new();
-            private List<HistoryNote> _global_history = new();
 
-            private enum GameAtributes
+            public bool GetVipStatus()
             {
-                Rock = 1,
-                Paper = 2,
-                Scissors = 3
+                return _basicVip_update;}
+
+            public BasicGameAccount(string _userName) : base(_userName)
+            {
+                _loseGameModificator = 2;
+                _winGameModificator = 1;
+
+                _basicVip_update = false;
             }
 
-            public void GameSimulation(int playerOneId, int playerTwoId)
+            public BasicGameAccount(GameAccount NewAccount) : base(NewAccount)
             {
-                Random rand = new Random();
-                string? playerOneChoose = Enum.GetName(typeof(GameAtributes), rand.Next(1, 3));
-                string? playerTwoChoose = Enum.GetName(typeof(GameAtributes), rand.Next(1, 3));
-
-                int gameResult = -1; //1 - player 1 win, 2 - player 2 win, 0 - drow
-
-                ///////////////////////////////////////////////////
-                switch (playerOneChoose)
+                _basicVip_update = true;
+            }
+            public override void WinGame(Game Mod)
+            {
+                if (Mod._gameteg == "Rating game")
                 {
-                    case "Rock":
-                        switch (playerTwoChoose)
-                        {
-                            case "Rock":
-                                gameResult = 0;
-                                break;
-                            case "Paper":
-                                gameResult = 2;
-                                break;
-                            case "Scissors":
-                                gameResult = 1;
-                                break;
-                        }
+                    _winStreakBonus = (_winStreakCount++) * _winGameModificator;
 
-                        break;
-                    case "Paper":
-                        switch (playerTwoChoose)
-                        {
-                            case "Rock":
-                                gameResult = 1;
-                                break;
-                            case "Paper":
-                                gameResult = 0;
-                                break;
-                            case "Scissors":
-                                gameResult = 2;
-                                break;
-                        }
-
-                        break;
-                    case "Scissors":
-                        switch (playerTwoChoose)
-                        {
-                            case "Rock":
-                                gameResult = 2;
-                                break;
-                            case "Paper":
-                                gameResult = 1;
-                                break;
-                            case "Scissors":
-                                gameResult = 0;
-                                break;
-                        }
-
-                        break;
+                    if (_winStreakCount > 2) _curentRating += winstore + _winStreakBonus;
+                    else _curentRating += winstore;
                 }
+            }
 
-                switch (gameResult)
+            public override void LoseGame(Game Mod)
+            {
+                if (Mod._gameteg == "Rating game")
+                {
+                    _winStreakCount = 0;
+                    if (_curentRating > 5 / _loseGameModificator)
+                        _curentRating -= losestore / _loseGameModificator;
+                }
+            }
+        }
+
+        public class BasicVipAccount : BasicGameAccount
+        {
+            public BasicVipAccount(GameAccount newAccount) : base(newAccount)
+            {
+                _loseGameModificator = 5;
+                _winGameModificator = 2;
+            }
+
+            public override void WinGame(Game Mod)
+            {
+                _winStreakBonus = (_winStreakCount++)*_winGameModificator;
+                _curentRating += winstore + _winStreakBonus;
+            }
+
+            public override void Stats()
+            {
+                base.Stats();
+                Console.WriteLine($"\tVIP Status : ON");
+            }
+        }
+
+        public class VipAccount : GameAccountModifications
+        {
+            protected int _loseStreakCount;
+            protected int _loseStreakBonus;
+            
+            public VipAccount(string _userName) : base(_userName)
+            {
+                _loseGameModificator = 5;
+                _winGameModificator = 3;
+                _loseStreakCount = 0;
+                _loseStreakBonus = 0;
+                _basicVip_update = true;
+            }
+
+            public override void WinGame(Game Mod)
+            {
+                if (Mod._gameteg == "Rating game")
+                {
+                    _curentRating += winstore * _winGameModificator + _loseStreakBonus;
+                
+                    _loseStreakBonus = 0;
+                    _loseStreakCount = 0; 
+                }
+            }
+
+            public override void LoseGame(Game Mod)
+            {
+                if (Mod._gameteg == "Rating game")
+                {
+                    _loseStreakBonus++;
+                    if (_curentRating > (5 / _loseGameModificator) - _loseStreakBonus)
+                        _curentRating -= losestore / _loseGameModificator - _loseStreakBonus;
+                }
+            }
+
+            public override void Stats()
+            {
+                base.Stats();
+                Console.WriteLine($"\tVIP Status : ON");
+            }
+        }
+        
+        
+        ////////////////////////////////
+
+        public class Simulation
+        {
+            private List<Game> _game_n_history = new();
+            private List<GameAccount> _accounts = new();
+            
+            private bool _VIP_acoount;
+
+            private int _playerOneID=-1, _playerTwoID=-1;
+
+            public Simulation()
+            {
+                Console.WriteLine("Game Simulation`s start...\n\n");
+                Start();
+            }
+
+            private void Start()
+            {
+                NewPlayer(_VIP_acoount);
+                do
+                {
+                    NewPlayer(_VIP_acoount);
+                    Console.Write($"Current numbers of Basic Account`s is {_accounts.Count}. Do you wont to create more? (y/n)\n::");
+                } while (Console.ReadLine() == "y");
+                Console.Write("Accounts created. Do you wont to create VIP account?(y/n)\n::");
+                if(Console.ReadLine() == "y")
+                    NewPlayer(_VIP_acoount=true);
+                Console.WriteLine("Done...\n\tNext step...");
+                GameChooseNStart();
+                EndGame();
+            }
+
+            private void GameChooseNStart()
+            {
+                Console.WriteLine("Choose game mode:\n\t<0>Training Game\n\t<1> Public game\n\t<2> Rating Game");
+                int GameModeChoosed = Convert.ToInt32(Console.ReadLine());
+                Console.Write("Choose Number of games with Two RANDOM players\n::");
+                int GameLoops = Convert.ToInt32(Console.ReadLine());
+
+                Random rand = new Random();
+                _playerOneID = rand.Next(0, _accounts.Count);
+                do
+                {
+                    _playerTwoID = rand.Next(0, _accounts.Count);
+                } while(_playerTwoID == _playerOneID);
+                
+                
+                
+                switch (GameModeChoosed)
                 {
                     case 1:
-                        _accounts[playerOneId].WinGame();
-                        _accounts[playerTwoId].LoseGame();
+                        for (int i = 0; i < GameLoops; i++)
+                        {
+                            _game_n_history.Add(new PublicGame(_accounts[_playerOneID], _accounts[_playerTwoID]));
+                            _game_n_history[_game_n_history.Count-1].StartGame();
+                        }
                         break;
-
+                    
                     case 2:
-                        _accounts[playerTwoId].WinGame();
-                        _accounts[playerOneId].LoseGame();
+                        for (int i = 0; i < GameLoops; i++)
+                        {
+                            _game_n_history.Add(new RatingGame(_accounts[_playerOneID], _accounts[_playerTwoID]));
+                            _game_n_history[_game_n_history.Count-1].StartGame();
+                        }
                         break;
-
+                    
                     default:
-                        _accounts[playerOneId].LoseGame();
-                        _accounts[playerTwoId].LoseGame();
+                        for(int i=0;i<GameLoops;i++)
+                        {
+                            _game_n_history.Add(new TrainingGame(_accounts[_playerOneID], _accounts[_playerTwoID]));
+                            _game_n_history[_game_n_history.Count-1].StartGame();
+                        }
                         break;
                 }
-
-                ///////////////////////////////////////////////////
-                HistoryNote(playerOneId, playerTwoId, playerOneChoose, playerTwoChoose, gameResult);
+                
+                CheckAccountUpdate();
+                Console.Write("Current Simulations End. Do you wont to start one more?(y/n)");
+                if(Console.ReadLine() == "y") GameChooseNStart();
             }
 
-            private void HistoryNote(int playerOneId, int playerTwoId, string? playerOneChoose, string? playerTwoChoose,
-                int winner)
+            private void EndGame()
             {
-                _global_history.Add(new HistoryNote(_accounts[playerOneId], _accounts[playerTwoId], winner,
-                    playerOneChoose, playerTwoChoose));
-                _accounts[playerOneId].NewHistoryNote(_global_history[_global_history.Count - 1]);
-                _accounts[playerTwoId].NewHistoryNote(_global_history[_global_history.Count - 1]);
+                Console.Write("All games ended... Do you wont to see global history?(y/n)\n::");
+                if (Console.ReadLine() == "y") ShowGlobalHistory();
+                Console.WriteLine($"\nChoose Player to display personal stats & history (0,{_accounts.Count-1})\n ::");
+                int Choose = Convert.ToInt32(Console.ReadLine());
+                if (Choose>0 && Choose < _accounts.Count)
+                {
+                    _accounts[Choose].Stats();
+                    Console.WriteLine("");
+                    _accounts[Choose].History();
+                }
             }
 
-            public void NewPlayer()
+            private void CheckAccountUpdate()
+            {
+                if (_accounts[_playerOneID].getRating() > 1300 && _accounts[_playerOneID].getVipUpdate() == false)
+                {
+                    _accounts[_playerOneID] = new BasicVipAccount(_accounts[_playerOneID]);
+                }
+
+                if (_accounts[_playerTwoID].getRating() > 1300 && _accounts[_playerOneID].getVipUpdate() == false)
+                {
+                    _accounts[_playerTwoID] = new BasicVipAccount(_accounts[_playerTwoID]);
+                }
+            }
+            private void NewPlayer(bool VIP)
             {
                 Console.Write("Enter Name for new Player:\n::");
                 string? nick = Console.ReadLine();
@@ -213,7 +301,8 @@ namespace Лаб
                 {
                     if (nick.Equals(null))
                         throw new Exception("Eroor...Trying create new account without Name");
-                    _accounts.Add(new GameAccount(nick));
+                    if(VIP == false) _accounts.Add(new BasicGameAccount(nick));
+                    else _accounts.Add(new VipAccount(nick));
                     Console.WriteLine(
                         $"New Player created successfully. Player`s {nick} ID: " + (_accounts.Count() - 1));
                 }
@@ -224,89 +313,188 @@ namespace Лаб
                 }
             }
 
-            public int NumberOfPlayers()
+            private void ShowGlobalHistory()
             {
-                return _accounts.Count();
+                foreach (var note in _game_n_history)
+                    note.GameStats();
+            }
+        }
+        
+        ////////////////////////////////
+     
+
+        public class Game
+        {
+            private static int GameID = 0;
+            private int CurrentGameID;
+            
+            protected GameAccount _playerOneAccount;
+            protected GameAccount _playerTwoAccount;
+            public String? _gameteg;
+            protected int _gameWinner;
+            protected enum GameAtributes
+            {
+                Rock = 1,
+                Paper = 2,
+                Scissors = 3
             }
 
-            public int CheackAvaliablePlayer(int PlayerOneID, int PlayerTwoID)
+            public Game(GameAccount _playerOneAccount, GameAccount _playerTwoAccount)
             {
-                try
-                {
-                    if (PlayerOneID > _accounts.Count || PlayerOneID < 0)
-                        throw new Exception("Error...Player One ID is not detected");
-
-                    if (PlayerTwoID > _accounts.Count || PlayerTwoID < 0)
-                        throw new Exception("Error...Player Two ID is not detected");
-
-                    if (PlayerTwoID == PlayerOneID)
-                        throw new Exception("Error...Can not be the same players is on game");
-                    return 1;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.Message);
-                    return 0;
-                }
+                this._playerOneAccount = _playerOneAccount;
+                this._playerTwoAccount = _playerTwoAccount;
+                CurrentGameID = GameID++;
             }
 
-            public void ShowHistory()
+            public Game(Game Note)
             {
-                Console.WriteLine("Global Game History:");
-                foreach (var note in _global_history)
-                    note.ShowNote();
+                this._playerOneAccount = Note._playerOneAccount;
+                this._playerTwoAccount = Note._playerTwoAccount;
+                this._gameteg = Note._gameteg;
+                this._gameWinner = Note._gameWinner;
+                this.CurrentGameID = Note.CurrentGameID;
             }
 
-            public void ShowStatsOfPlayer(int PlayerID)
-            {
-                _accounts[PlayerID].Stats();
-            }
+            public virtual void StartGame(){}
+            protected virtual void GameResult() {}
 
-            public void ShowPersonallyHistoryOfPlayer(int PlayerID)
+            public virtual void GameStats()
             {
-                _accounts[PlayerID].ShowHistory();
+                Console.Write($"Game ID#{CurrentGameID}\n\tPlayer One : {_playerOneAccount.getName()}\n\tPlayer Two : {_playerTwoAccount.getName()}\n\tGame mode : {_gameteg}\n");
+                if(_gameWinner != 0) Console.WriteLine($"\tWinner of the game : {(_gameWinner == 1 ? _playerOneAccount.getName() : _playerTwoAccount.getName())}");
+                    else Console.WriteLine("\tResult : Draw");
+                Console.WriteLine("n------------------------------");
             }
         }
 
+        public class GameModification : Game
+        {
+            public GameModification(GameAccount _playerOneAccount, GameAccount _playerTwoAccount) : base(_playerOneAccount,_playerTwoAccount){}
+            
+            public void GameSolution(string? playerOneChoose, string? playerTwoChoose)
+            {
+                switch (playerOneChoose)
+                {
+                    case "Rock":
+                        switch (playerTwoChoose)
+                        {
+                            case "Rock":
+                                _gameWinner = 0;
+                                break;
+                            case "Paper":
+                                _gameWinner = 2;
+                                break;
+                            case "Scissors":
+                                _gameWinner = 1;
+                                break;
+                        }
+
+                        break;
+                    case "Paper":
+                        switch (playerTwoChoose)
+                        {
+                            case "Rock":
+                                _gameWinner = 1;
+                                break;
+                            case "Paper":
+                                _gameWinner = 0;
+                                break;
+                            case "Scissors":
+                                _gameWinner = 2;
+                                break;
+                        }
+
+                        break;
+                    case "Scissors":
+                        switch (playerTwoChoose)
+                        {
+                            case "Rock":
+                                _gameWinner = 2;
+                                break;
+                            case "Paper":
+                                _gameWinner = 1;
+                                break;
+                            case "Scissors":
+                                _gameWinner = 0;
+                                break;
+                        }
+
+                        break;
+                }
+                _playerOneAccount.NewHistoryNote(this);
+                _playerTwoAccount.NewHistoryNote(this);
+                GameResult();
+            }
+
+            protected override void GameResult()
+            {
+                _playerOneAccount.NewHistoryNote(this);
+                _playerTwoAccount.NewHistoryNote(this);
+            }
+
+            public override void StartGame()
+            {
+                Random rand = new Random();
+                string? playerOneChoose = Enum.GetName(typeof(GameAtributes), rand.Next(1, 3));
+                string? playerTwoChoose = Enum.GetName(typeof(GameAtributes), rand.Next(1, 3));
+                GameSolution(playerOneChoose,playerTwoChoose);
+            }
+            
+        }
+
+        public class TrainingGame : GameModification
+        {
+            public TrainingGame(GameAccount _playerOneAccount, GameAccount _playerTwoAccount) : base(_playerOneAccount,_playerTwoAccount)
+            {
+                _gameteg = "Training";
+            }
+        }
+
+        public class PublicGame : GameModification
+        {
+            public PublicGame(GameAccount _playerOneAccount, GameAccount _playerTwoAccount) : base(_playerOneAccount,_playerTwoAccount)
+            {
+                _gameteg = "Public game";
+            }
+
+            protected override void GameResult()
+            {
+                _playerOneAccount.NewCounter();
+                _playerTwoAccount.NewCounter();
+                
+                if (_gameWinner == 1)
+                {
+                    _playerOneAccount.WinGame(this);
+                    _playerTwoAccount.LoseGame(this);
+                }
+                else if (_gameWinner == 2)
+                {
+                    _playerTwoAccount.WinGame(this);
+                    _playerOneAccount.LoseGame(this);
+                }
+                else
+                {
+                    _playerOneAccount.LoseGame(this);
+                    _playerTwoAccount.LoseGame(this);
+                }
+
+            }
+        }
+
+        public class RatingGame : PublicGame
+        {
+            public RatingGame(GameAccount _playerOneAccount, GameAccount _playerTwoAccount) : base(_playerOneAccount,_playerTwoAccount)
+            {
+                _gameteg = "Rating game";
+            }
+        }
+
+        
+        ////////////////////////////////
+        
         public static void Main(String[] args)
         {
-            Game currentGame = new Game();
-            int playerOneId, playerTwoId;
-            Console.WriteLine("Game Created...Avalible accounts: 0. Creating new player...");
-            while (true)
-            {
-                currentGame.NewPlayer();
-                if (currentGame.NumberOfPlayers() < 2) continue;
-                Console.Write(
-                    $"\nNumber of Avaliable players is {currentGame.NumberOfPlayers()}.Do you wanna create one more?(y/n)\n::");
-                if (Console.ReadLine() != "y")
-                    break;
-            }
-
-            Console.WriteLine("--------------------------------------");
-
-            Console.Write("Choose the number of simulations of the game \"rock paper scissors\"\n::");
-            int countOfGames = Convert.ToInt32(Console.ReadLine());
-            for (int i = 0; i < countOfGames; i++)
-            {
-                do
-                {
-                    Console.Write($"Choose first players for game #{i} (input ID) \n::");
-                    playerOneId = Convert.ToInt32(Console.ReadLine());
-                    Console.Write($"Choose second players for game #{i} (input ID) \n::");
-                    playerTwoId = Convert.ToInt32(Console.ReadLine());
-                } while (currentGame.CheackAvaliablePlayer(playerOneId, playerTwoId) != 1);
-
-                currentGame.GameSimulation(playerOneId, playerTwoId);
-            }
-
-            Console.Write("Games already ended. Choose player to display Stats (player ID)\n::");
-            currentGame.ShowStatsOfPlayer(Convert.ToInt32(Console.ReadLine()));
-            currentGame.ShowHistory();
-            Console.Write("Choose player to display personally history\n::");
-            currentGame.ShowPersonallyHistoryOfPlayer(Convert.ToInt32(Console.ReadLine()));
-
-
+            Simulation game = new Simulation();
         }
     }
 }
