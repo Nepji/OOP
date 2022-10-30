@@ -13,6 +13,7 @@ namespace Лаб
             protected int _gamesCount;
             protected int _userID;
             protected bool _basicVip_update = false;
+            protected bool _VIPStatus;
             
             public bool getVipUpdate() { return _basicVip_update;}
 
@@ -36,6 +37,8 @@ namespace Лаб
                 this._gamesCount = NewAccount._gamesCount;
                 this._userID = NewAccount._userID;
                 this._history = NewAccount._history;
+                this._history = NewAccount._history;
+                this._VIPStatus = NewAccount._VIPStatus;
             }
             
             public virtual void WinGame(Game Mod)
@@ -44,9 +47,16 @@ namespace Лаб
             public virtual void LoseGame(Game Mod)
             {}
 
-            public virtual void Stats()
+            public void Stats()
             {
-                Console.WriteLine($"Account ID : {_userID}\n\tPlayer Name: {_userName}\n\tGame Count : {_gamesCount}\n\tCurrent Rating : {_curentRating}");
+                Console.Write($"Account ID : {_userID}\n\tPlayer Name: {_userName}\n\tVip Status:");
+                if(_VIPStatus == true)
+                    Console.WriteLine("Vip Upgrade");
+                else if(_basicVip_update == true)
+                    Console.WriteLine("Basic Vip");
+                else 
+                    Console.WriteLine("None");
+                Console.WriteLine($"\tGame Count : {_gamesCount}\n\tCurrent Rating : {_curentRating}");
             }
 
             public void History()
@@ -66,6 +76,11 @@ namespace Лаб
 
         public class GameAccountModifications : GameAccount
         {
+            protected string Training = "Training";
+            protected string Public = "Public game";
+            protected string Rating = "Rating game";
+            protected int RESET = 0;
+            
             protected const int losestore = 5;
             protected const int winstore = 10;
             
@@ -102,24 +117,24 @@ namespace Лаб
             }
             public override void WinGame(Game Mod)
             {
-                if (Mod._gameteg == "Rating game")
-                {
-                    _winStreakBonus = (_winStreakCount++) * _winGameModificator;
+                if (Mod._gameteg != Rating) return;
+                
+                _winStreakBonus = (_winStreakCount++) * _winGameModificator;
 
-                    if (_winStreakCount > 2) _curentRating += winstore + _winStreakBonus;
-                    else _curentRating += winstore;
-                }
+                if (_winStreakCount > 2) _curentRating += winstore + _winStreakBonus;
+                else _curentRating += winstore;
+                
             }
 
             public override void LoseGame(Game Mod)
             {
-                if (Mod._gameteg == "Rating game")
-                {
-                    _winStreakCount = 0;
-                    if (_curentRating > 5 / _loseGameModificator)
-                        _curentRating -= losestore / _loseGameModificator;
-                }
-            }
+                if (Mod._gameteg != Rating) return;
+                
+                _winStreakCount = RESET;
+                if (_curentRating > 5 / _loseGameModificator)
+                    _curentRating -= losestore / _loseGameModificator;
+            
+        }
         }
 
         public class BasicVipAccount : BasicGameAccount
@@ -135,12 +150,6 @@ namespace Лаб
                 _winStreakBonus = (_winStreakCount++)*_winGameModificator;
                 _curentRating += winstore + _winStreakBonus;
             }
-
-            public override void Stats()
-            {
-                base.Stats();
-                Console.WriteLine($"\tVIP Status : ON");
-            }
         }
 
         public class VipAccount : GameAccountModifications
@@ -152,8 +161,8 @@ namespace Лаб
             {
                 _loseGameModificator = 5;
                 _winGameModificator = 3;
-                _loseStreakCount = 0;
-                _loseStreakBonus = 0;
+                _loseStreakCount = RESET;
+                _loseStreakBonus = RESET;
                 _basicVip_update = true;
             }
 
@@ -163,8 +172,8 @@ namespace Лаб
                 {
                     _curentRating += winstore * _winGameModificator + _loseStreakBonus;
                 
-                    _loseStreakBonus = 0;
-                    _loseStreakCount = 0; 
+                    _loseStreakBonus = RESET;
+                    _loseStreakCount = RESET; 
                 }
             }
 
@@ -173,155 +182,14 @@ namespace Лаб
                 if (Mod._gameteg == "Rating game")
                 {
                     _loseStreakBonus++;
-                    if (_curentRating > (5 / _loseGameModificator) - _loseStreakBonus)
-                        _curentRating -= losestore / _loseGameModificator - _loseStreakBonus;
+                    if (_curentRating > (5 / _loseGameModificator) - _loseStreakBonus - _loseStreakCount)
+                        _curentRating -= losestore / _loseGameModificator - _loseStreakBonus - _loseStreakCount;
                 }
-            }
-
-            public override void Stats()
-            {
-                base.Stats();
-                Console.WriteLine($"\tVIP Status : ON");
             }
         }
         
         
         ////////////////////////////////
-
-        public class Simulation
-        {
-            private List<Game> _game_n_history = new();
-            private List<GameAccount> _accounts = new();
-            
-            private bool _VIP_acoount;
-
-            private int _playerOneID=-1, _playerTwoID=-1;
-
-            public Simulation()
-            {
-                Console.WriteLine("Game Simulation`s start...\n\n");
-                Start();
-            }
-
-            private void Start()
-            {
-                NewPlayer(_VIP_acoount);
-                do
-                {
-                    NewPlayer(_VIP_acoount);
-                    Console.Write($"Current numbers of Basic Account`s is {_accounts.Count}. Do you wont to create more? (y/n)\n::");
-                } while (Console.ReadLine() == "y");
-                Console.Write("Accounts created. Do you wont to create VIP account?(y/n)\n::");
-                if(Console.ReadLine() == "y")
-                    NewPlayer(_VIP_acoount=true);
-                Console.WriteLine("Done...\n\tNext step...");
-                GameChooseNStart();
-                EndGame();
-            }
-
-            private void GameChooseNStart()
-            {
-                Console.WriteLine("Choose game mode:\n\t<0>Training Game\n\t<1> Public game\n\t<2> Rating Game");
-                int GameModeChoosed = Convert.ToInt32(Console.ReadLine());
-                Console.Write("Choose Number of games with Two RANDOM players\n::");
-                int GameLoops = Convert.ToInt32(Console.ReadLine());
-
-                Random rand = new Random();
-                _playerOneID = rand.Next(0, _accounts.Count);
-                do
-                {
-                    _playerTwoID = rand.Next(0, _accounts.Count);
-                } while(_playerTwoID == _playerOneID);
-                
-                
-                
-                switch (GameModeChoosed)
-                {
-                    case 1:
-                        for (int i = 0; i < GameLoops; i++)
-                        {
-                            _game_n_history.Add(new PublicGame(_accounts[_playerOneID], _accounts[_playerTwoID]));
-                            _game_n_history[_game_n_history.Count-1].StartGame();
-                        }
-                        break;
-                    
-                    case 2:
-                        for (int i = 0; i < GameLoops; i++)
-                        {
-                            _game_n_history.Add(new RatingGame(_accounts[_playerOneID], _accounts[_playerTwoID]));
-                            _game_n_history[_game_n_history.Count-1].StartGame();
-                        }
-                        break;
-                    
-                    default:
-                        for(int i=0;i<GameLoops;i++)
-                        {
-                            _game_n_history.Add(new TrainingGame(_accounts[_playerOneID], _accounts[_playerTwoID]));
-                            _game_n_history[_game_n_history.Count-1].StartGame();
-                        }
-                        break;
-                }
-                
-                CheckAccountUpdate();
-                Console.Write("Current Simulations End. Do you wont to start one more?(y/n)");
-                if(Console.ReadLine() == "y") GameChooseNStart();
-            }
-
-            private void EndGame()
-            {
-                Console.Write("All games ended... Do you wont to see global history?(y/n)\n::");
-                if (Console.ReadLine() == "y") ShowGlobalHistory();
-                Console.WriteLine($"\nChoose Player to display personal stats & history (0,{_accounts.Count-1})\n ::");
-                int Choose = Convert.ToInt32(Console.ReadLine());
-                if (Choose>0 && Choose < _accounts.Count)
-                {
-                    _accounts[Choose].Stats();
-                    Console.WriteLine("");
-                    _accounts[Choose].History();
-                }
-            }
-
-            private void CheckAccountUpdate()
-            {
-                if (_accounts[_playerOneID].getRating() > 1300 && _accounts[_playerOneID].getVipUpdate() == false)
-                {
-                    _accounts[_playerOneID] = new BasicVipAccount(_accounts[_playerOneID]);
-                }
-
-                if (_accounts[_playerTwoID].getRating() > 1300 && _accounts[_playerOneID].getVipUpdate() == false)
-                {
-                    _accounts[_playerTwoID] = new BasicVipAccount(_accounts[_playerTwoID]);
-                }
-            }
-            private void NewPlayer(bool VIP)
-            {
-                Console.Write("Enter Name for new Player:\n::");
-                string? nick = Console.ReadLine();
-                try
-                {
-                    if (nick.Equals(null))
-                        throw new Exception("Eroor...Trying create new account without Name");
-                    if(VIP == false) _accounts.Add(new BasicGameAccount(nick));
-                    else _accounts.Add(new VipAccount(nick));
-                    Console.WriteLine(
-                        $"New Player created successfully. Player`s {nick} ID: " + (_accounts.Count() - 1));
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.Message);
-                    return;
-                }
-            }
-
-            private void ShowGlobalHistory()
-            {
-                foreach (var note in _game_n_history)
-                    note.GameStats();
-            }
-        }
-        
-        ////////////////////////////////
-     
 
         public class Game
         {
@@ -332,12 +200,7 @@ namespace Лаб
             protected GameAccount _playerTwoAccount;
             public String? _gameteg;
             protected int _gameWinner;
-            protected enum GameAtributes
-            {
-                Rock = 1,
-                Paper = 2,
-                Scissors = 3
-            }
+            
 
             public Game(GameAccount _playerOneAccount, GameAccount _playerTwoAccount)
             {
@@ -361,14 +224,25 @@ namespace Лаб
             public virtual void GameStats()
             {
                 Console.Write($"Game ID#{CurrentGameID}\n\tPlayer One : {_playerOneAccount.getName()}\n\tPlayer Two : {_playerTwoAccount.getName()}\n\tGame mode : {_gameteg}\n");
-                if(_gameWinner != 0) Console.WriteLine($"\tWinner of the game : {(_gameWinner == 1 ? _playerOneAccount.getName() : _playerTwoAccount.getName())}");
-                    else Console.WriteLine("\tResult : Draw");
-                Console.WriteLine("n------------------------------");
+                Console.WriteLine(_gameWinner != 0
+                    ? $"\tWinner of the game : {(_gameWinner == 1 ? _playerOneAccount.getName() : _playerTwoAccount.getName())}"
+                    : "\tResult : Draw");
+                Console.WriteLine("------------------------------");
             }
         }
 
         public class GameModification : Game
         {
+            protected string Training = "Training";
+            protected string Public = "Public game";
+            protected string Rating = "Rating game";
+            
+            protected enum GameAtributes
+            {
+                Rock = 1,
+                Paper = 2,
+                Scissors = 3
+            }
             public GameModification(GameAccount _playerOneAccount, GameAccount _playerTwoAccount) : base(_playerOneAccount,_playerTwoAccount){}
             
             public void GameSolution(string? playerOneChoose, string? playerTwoChoose)
@@ -446,7 +320,7 @@ namespace Лаб
         {
             public TrainingGame(GameAccount _playerOneAccount, GameAccount _playerTwoAccount) : base(_playerOneAccount,_playerTwoAccount)
             {
-                _gameteg = "Training";
+                _gameteg = Training;
             }
         }
 
@@ -454,7 +328,7 @@ namespace Лаб
         {
             public PublicGame(GameAccount _playerOneAccount, GameAccount _playerTwoAccount) : base(_playerOneAccount,_playerTwoAccount)
             {
-                _gameteg = "Public game";
+                _gameteg = Public;
             }
 
             protected override void GameResult()
@@ -485,12 +359,141 @@ namespace Лаб
         {
             public RatingGame(GameAccount _playerOneAccount, GameAccount _playerTwoAccount) : base(_playerOneAccount,_playerTwoAccount)
             {
-                _gameteg = "Rating game";
+                _gameteg = Rating;
             }
         }
 
         
         ////////////////////////////////
+
+        public class Simulation
+        {
+            private List<Game> _game_n_history = new();
+            private List<GameAccount> _accounts = new();
+            
+            private bool _VIP_acoount;
+
+            private int _playerOneID=-1, _playerTwoID=-1;
+
+            public Simulation()
+            {
+                Console.WriteLine("Game Simulation`s start...\n\n");
+                Start();
+            }
+
+            private void Start()
+            {
+                NewPlayer(_VIP_acoount);
+                do
+                {
+                    NewPlayer(_VIP_acoount);
+                    Console.Write($"Current numbers of Basic Account`s is {_accounts.Count}. Do you wont to create more? (y/n)\n::");
+                } while (Console.ReadLine() == "y");
+                Console.Write("Accounts created. Do you wont to create VIP account?(y/n)\n::");
+                if(Console.ReadLine() == "y")
+                    NewPlayer(_VIP_acoount=true);
+                Console.WriteLine("Done...\n\tNext step...");
+                GameChooseNStart();
+                EndGame();
+            }
+
+            private void GameChooseNStart()
+            {
+                Console.WriteLine("Choose game mode:\n\t<0>Training Game\n\t<1> Public game\n\t<2> Rating Game");
+                int GameModeChoosed = Convert.ToInt32(Console.ReadLine());
+                Console.Write("Choose Number of games with Two RANDOM players\n::");
+                int GameLoops = Convert.ToInt32(Console.ReadLine());
+
+                Random rand = new Random();
+                _playerOneID = rand.Next(0, _accounts.Count);
+                do
+                {
+                    _playerTwoID = rand.Next(0, _accounts.Count);
+                } while(_playerTwoID == _playerOneID);
+                
+                
+                
+                switch (GameModeChoosed)
+                {
+                    case 1:
+                        for (int i = 0; i < GameLoops; i++)
+                            _game_n_history.Add(new PublicGame(_accounts[_playerOneID], _accounts[_playerTwoID]));
+
+                        break;
+                    
+                    case 2:
+                        for (int i = 0; i < GameLoops; i++)
+                            _game_n_history.Add(new RatingGame(_accounts[_playerOneID], _accounts[_playerTwoID]));
+                        break;
+                    
+                    default:
+                        for(int i=0;i<GameLoops;i++)
+                            _game_n_history.Add(new TrainingGame(_accounts[_playerOneID], _accounts[_playerTwoID]));
+                        break;
+                }
+                _game_n_history[_game_n_history.Count-1].StartGame();
+                
+                CheckAccountUpdate();
+                _game_n_history[_game_n_history.Count - 1] = new Game(_game_n_history[_game_n_history.Count - 1]);
+                Console.Write("Current Simulations End. Do you wont to start one more?(y/n)");
+                if(Console.ReadLine() == "y") GameChooseNStart();
+            }
+
+            private void EndGame()
+            {
+                Console.Write("All games ended... Do you wont to see global history?(y/n)\n::");
+                if (Console.ReadLine() == "y") ShowGlobalHistory();
+                Console.WriteLine($"\nChoose Player to display personal stats & history (0,{_accounts.Count-1})\n ::");
+                int Choose = Convert.ToInt32(Console.ReadLine());
+                if (Choose>0 && Choose < _accounts.Count)
+                {
+                    _accounts[Choose].Stats();
+                    Console.WriteLine("");
+                    _accounts[Choose].History();
+                }
+            }
+
+            private void CheckAccountUpdate()
+            {
+                if (_accounts[_playerOneID].getRating() > 1300 && _accounts[_playerOneID].getVipUpdate() == false)
+                {
+                    _accounts[_playerOneID] = new BasicVipAccount(_accounts[_playerOneID]);
+                }
+
+                if (_accounts[_playerTwoID].getRating() > 1300 && _accounts[_playerOneID].getVipUpdate() == false)
+                {
+                    _accounts[_playerTwoID] = new BasicVipAccount(_accounts[_playerTwoID]);
+                }
+            }
+            private void NewPlayer(bool VIP)
+            {
+                Console.Write("Enter Name for new Player:\n::");
+                string? nick = Console.ReadLine();
+                try
+                {
+                    if (nick.Equals(null))
+                        throw new Exception("Eroor...Trying create new account without Name");
+                    if(VIP == false) _accounts.Add(new BasicGameAccount(nick));
+                    else _accounts.Add(new VipAccount(nick));
+                    Console.WriteLine(
+                        $"New Player created successfully. Player`s {nick} ID: " + (_accounts.Count() - 1));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    return;
+                }
+            }
+
+            private void ShowGlobalHistory()
+            {
+                foreach (var note in _game_n_history)
+                    note.GameStats();
+            }
+        }
+        
+        ////////////////////////////////
+     
         
         public static void Main(String[] args)
         {
